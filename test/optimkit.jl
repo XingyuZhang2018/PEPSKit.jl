@@ -17,10 +17,10 @@ using LinearAlgebra
     A = randn(n, n)
     fg = quadraticproblem(A'*A, y)
     x₀ = randn(n)
-    alg = LBFGS(; verbosity = 1, gradtol = 1e-12)
+    alg = LBFGS(; verbosity = 2, gradtol = 1e-12)
     x, f, g, numfg, normgradhistory = optimize(fg, x₀, alg)
     @test x ≈ y
     @test f < 1e-14
 
-    @show x f g numfg normgradhistory
+    # @show x f g numfg normgradhistory
 end
