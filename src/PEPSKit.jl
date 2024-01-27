@@ -8,12 +8,14 @@ module PEPSKit
     using Printf
     using Zygote
 
-    export Heisenberg, hamiltonian
+    export hamiltonian, Heisenberg, FreeFermion
     export init_ipeps, optimise
 
     include("hamiltonian_models.jl")
     include("inferface.jl")
     include("autodiff.jl")
+    include("energy/bosonic.jl")
+    include("energy/fermionic.jl")
     include("optimise.jl")
 
 end
