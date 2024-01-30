@@ -33,12 +33,12 @@ end
     Random.seed!(42)
     params = PEPSKit.Params(model = FreeFermion(1,1), 
                             iff = true,
+                            ifsave=false,
                             D = ℤ₂Space(0=>1, 1=>1), 
-                            contraction = FPCM(χ=ℤ₂Space(0=>2, 1=>2), miniter=10))
+                            contraction = FPCM(χ=ℤ₂Space(0=>10, 1=>10), miniter=10))
 
     ipeps = init_ipeps(params)
     h = hamiltonian(params.model)
     e = energy(ipeps, h, params, Val(:Fermionic))
-    @show e
-    # @test e ≈ 0.5 atol=1e-4
+    @test e ≈ -0.02488097 atol=1e-4
 end

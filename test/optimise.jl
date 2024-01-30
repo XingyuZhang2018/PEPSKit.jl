@@ -22,3 +22,17 @@ end
     ipeps = init_ipeps(params)
     @test optimise(ipeps, params)[2] ≈ -0.662513783652071 atol = 1e-6
 end
+
+@testset "FreeFermion Fermionic" begin
+    Random.seed!(10)
+    params = PEPSKit.Params(model = FreeFermion(1,1), 
+                            iff = true,
+                            iter = 0, 
+                            maxiter = 20,
+                            D = ℤ₂Space(0=>1, 1=>1), 
+                            save_interval = 1,
+                            contraction = FPCM(χ=ℤ₂Space(0=>5, 1=>5), miniter=1, maxiter=20, verbose=false))
+
+    ipeps = init_ipeps(params)
+    @test optimise(ipeps, params)[2] ≈ -1.45 atol = 1e-1
+end
