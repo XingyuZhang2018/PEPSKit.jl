@@ -30,6 +30,24 @@ function init_ipeps(params::Params)
 end
 
 _inner(x, dx1, dx2) = real(dot(dx1, dx2))
+function _finalize!(x, f, g, iter, params)
+    message = @sprintf("i = %5d,\tenergy = %.15f,\tgnorm = %.3e\n", iter, f, norm(g))
+    if params.verbose && iter % params.output_interval == 0
+        printstyled(message; bold=true, color=:red)
+        flush(stdout)
+    end
+
+    @unpack D, outfolder = params
+    !(isdir(outfolder)) && mkdir(outfolder)
+
+    if params.ifsave && iter % params.save_interval == 0
+        logfile = open(rejoinpath(outfolder, "trace.log"), "a")
+        write(logfile, message)
+        close(logfile)
+        save(rejoinpath(outfolder, "ipeps_No$(iter).jld2"), "ipeps", x)
+    end
+    return x, f, g
+end 
 
 function optimise(ipeps, params::Params)
     h = hamiltonian(params.model)
@@ -40,25 +58,6 @@ function optimise(ipeps, params::Params)
     end
     # @show fg(ipeps)
     alg = LBFGS(; verbosity = 0, gradtol = params.tol, maxiter = params.maxiter)
-    x, f, g, numfg, normgradhistory = optimize(fg, ipeps, alg; inner=_inner, callback=os->writelog(os, params))
+    x, f, g, numfg, normgradhistory = optimize(fg, ipeps, alg; inner = _inner, finalize! = (x, f, g, iter)->_finalize!(x, f, g, iter, params))
     return x, f, g, numfg, normgradhistory
-end
-
-function writelog(os, params::Params)
-    message = @sprintf("i = %5d,\tenergy = %.15f,\tgnorm = %.3e\n", os.iter, os.f, os.g)
-    if params.verbose && os.iter % params.output_interval == 0
-        printstyled(message; bold=true, color=:red)
-        flush(stdout)
-    end
-
-    @unpack D, outfolder = params
-    !(isdir(outfolder)) && mkdir(outfolder)
-
-    if params.ifsave && os.iter % params.save_interval == 0
-        logfile = open(rejoinpath(outfolder, "trace.log"), "a")
-        write(logfile, message)
-        close(logfile)
-        save(rejoinpath(outfolder, "ipeps_No$(os.iter).jld2"), "ipeps", os.x)
-    end
-    return false
 end
