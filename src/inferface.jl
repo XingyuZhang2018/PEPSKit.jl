@@ -15,4 +15,6 @@ using ADFPCM: Algorithm
     outfolder = infolder # save to outfolder
     verbose::Bool = true # if print log
     contraction::Algorithm # contraction algorithm
+    backmaxiter::Int = 10 # backward max iteration
+    backminiter::Int = 3 # backward min iteration
 end

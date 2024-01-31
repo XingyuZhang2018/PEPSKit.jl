@@ -51,10 +51,14 @@ end
 
 function optimise(ipeps, params::Params)
     h = hamiltonian(params.model)
+    paramsback = deepcopy(params)
+    paramsback.contraction.maxiter = params.backmaxiter
+    paramsback.contraction.miniter = params.backminiter
     f(x) = params.iff ? real(energy(x, h, params, Val(:Fermionic))) : real(energy(x, h, params, Val(:Bosonic)))
+    fback(x) = params.iff ? real(energy(x, h, paramsback, Val(:Fermionic))) : real(energy(x, h, paramsback, Val(:Bosonic)))
 
     function fg(x)
-        return f(x), gradient(f, x)[1]
+        return f(x), gradient(fback, x)[1]
     end
     # @show fg(ipeps)
     alg = LBFGS(; verbosity = 0, gradtol = params.tol, maxiter = params.maxiter)
