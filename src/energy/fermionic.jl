@@ -28,7 +28,7 @@ This tensor is ready for contraction algorithm
 """
 function double_layer(ipeps, SDD)
     ipepsdag = fdag(ipeps, SDD)
-    @tensor M[-7 -12 -13 -1; -8 -10 -11 -5] := SDD[-12 6; 2 -13] * ipeps[-1 2 3; 4 -5] * SDD[4 -11; -10 9] * ipepsdag[-8 9; 6 -7 3]
+    @tensor M[-7 -12 -13 -1; -8 -10 -11 -5] := ipepsdag[-8 9; 6 -7 3] * ipeps[-1 2 3; 4 -5] * SDD[4 -11; -10 9] * SDD[-12 6; 2 -13]
 
     D = space(ipeps, 1)
     DD = Zygote.@ignore fuse(D', D)
@@ -65,13 +65,13 @@ function energy(ipeps, h, params::Params, ::Val{:Fermionic})
     etol = 0.0
 
     # To do: finish the following code 
-    @tensor lr[-21 -24; -23 -25] := Elo[39 7 29; 38] * Edl[38 9 40; 37] * ipepsdag[9 10; 6 7 8] * SDD[17 27; 10 40] * SdD[8 22; -23 27] * Eul[34 30 1; 39] * ipeps[1 2 3; 4 5] * SDD[29 6; 2 30] * SdD[-21 4; 3 22] * Edr[37 19 32; 36] * ipepsdag[19 20; 16 17 18] * SDD[14 31; 32 20] * SdD[18 16; -25 26] * Eur[35 33 11; 34] * ipeps[11 12 13; 14 15] * SDD[5 28; 12 33] * SdD[-24 26; 13 28] * Ero[36 31 15; 35] 
+    @tensoropt lr[-21 -24; -23 -25] := Elo[39 7 29; 38] * Edl[38 9 40; 37] * ipepsdag[9 10; 6 7 8] * SDD[17 27; 10 40] * SdD[8 22; -23 27] * Eul[34 30 1; 39] * ipeps[1 2 3; 4 5] * SDD[29 6; 2 30] * SdD[-21 4; 3 22] * Edr[37 19 32; 36] * ipepsdag[19 20; 16 17 18] * SDD[14 31; 32 20] * SdD[18 16; -25 26] * Eur[35 33 11; 34] * ipeps[11 12 13; 14 15] * SDD[5 28; 12 33] * SdD[-24 26; 13 28] * Ero[36 31 15; 35] 
     @plansor e = lr[1 2; 3 4] * h[3 4; 1 2]
     @plansor n = lr[1 2; 1 2]
     abs(n) < 1e-8 && println("overlap is zero. e = $e, n = $n")
     etol += e / n
 
-    @tensor ud[-15 -30; -14 -32] := Eul[36 12 1; 35] * Eru[37 18 5; 36] * ipeps[1 2 3; 4 5] * SDD[6 11; 12 2] * SdD[-15 16; 3 13] * Elu[35 7 11; 40] * ipepsdag[9 10; 6 7 8] * SDD[23 34; 9 33] * SdD[8 13; -14 10] * Eld[40 24 34; 39] * ipepsdag[26 27; 23 24 25] * SDD[29 21; 27 28] * SdD[25 33; -32 31] * Edl[39 26 28; 38] * ipeps[17 19 20; 21 22] * SDD[4 18; 17 16] * SdD[-30 31; 20 19] * Erd[38 29 22; 37]
+    @tensoropt ud[-15 -30; -14 -32] := Eul[36 12 1; 35] * Eru[37 18 5; 36] * ipeps[1 2 3; 4 5] * SDD[6 11; 12 2] * SdD[-15 16; 3 13] * Elu[35 7 11; 40] * ipepsdag[9 10; 6 7 8] * SDD[23 34; 9 33] * SdD[8 13; -14 10] * Eld[40 24 34; 39] * ipepsdag[26 27; 23 24 25] * SDD[29 21; 27 28] * SdD[25 33; -32 31] * Edl[39 26 28; 38] * ipeps[17 19 20; 21 22] * SDD[4 18; 17 16] * SdD[-30 31; 20 19] * Erd[38 29 22; 37]
     @plansor e = ud[1 2; 3 4] * h[3 4; 1 2]
     @plansor n = ud[1 2; 1 2]
     abs(n) < 1e-8 && println("overlap is zero. e = $e, n = $n")

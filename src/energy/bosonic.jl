@@ -17,7 +17,7 @@ function energy(ipeps, h, params::Params, ::Val{:Bosonic})
     │     9     10    │                       
     11 ───┴─12 ─┴──── 13                       
     """                 
-    @tensor lr[-14 -15; -16 -17] := Elo[1 6; 11] * Edl[11 9; 12] * Mp[6 2 -14; 9 7 -16] * Eul[3 2; 1] * Edr[12 10; 13] * Ero[13 8; 5] * Mp[7 4 -15; 10 8 -17] * Eur[5 4; 3]
+    @tensoropt lr[-14 -15; -16 -17] := Elo[1 6; 11] * Edl[11 9; 12] * Mp[6 2 -14; 9 7 -16] * Eul[3 2; 1] * Edr[12 10; 13] * Ero[13 8; 5] * Mp[7 4 -15; 10 8 -17] * Eur[5 4; 3]
     @plansor e = lr[1 2; 3 4] * h[3 4; 1 2]
     @plansor n = lr[1 2; 1 2]
     etol += e / n
@@ -31,7 +31,7 @@ function energy(ipeps, h, params::Params, ::Val{:Bosonic})
     │     11    │ 
     12 ───┴─── 13 
     """ 
-    @tensor ud[-14 -15; -16 -17] := Eru[8 5; 3] * Eul[3 2; 1] * Mp[4 2 -14; 7 5 -16] * Elu[1 4; 6] * Eld[6 9; 12] * Edl[12 11; 13] * Mp[9 7 -15; 11 10 -17] * Erd[13 10; 8]
+    @tensoropt ud[-14 -15; -16 -17] := Eru[8 5; 3] * Eul[3 2; 1] * Mp[4 2 -14; 7 5 -16] * Elu[1 4; 6] * Eld[6 9; 12] * Edl[12 11; 13] * Mp[9 7 -15; 11 10 -17] * Erd[13 10; 8]
     @plansor e = ud[1 2; 3 4] * h[3 4; 1 2]
     @plansor n = ud[1 2; 1 2]
     etol += e / n

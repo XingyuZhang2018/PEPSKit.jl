@@ -7,9 +7,9 @@ let
     Random.seed!(10)
     params = PEPSKit.Params(model = FreeFermion(1,1), 
                             iff = true,
-                            iter = 12, 
+                            iter = 0, 
                             maxiter = 100,
-                            D = ℤ₂Space(0=>2, 1=>1), 
+                            D = ℤ₂Space(0=>2, 1=>2), 
                             save_interval = 1,
                             contraction = FPCM(χ=ℤ₂Space(0=>10, 1=>10), miniter=1, maxiter=100, verbose=true))
     ipeps = init_ipeps(params)
