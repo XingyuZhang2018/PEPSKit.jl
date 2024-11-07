@@ -119,11 +119,6 @@ function initial_C(A::Matrix{<:AbstractTensorMap})
     return C
 end
 
-# KrylovKit patch
-TensorKit.inner(x::AbstractArray{<:AbstractTensorMap}, y::AbstractArray{<:AbstractTensorMap}) = sum(map(TensorKit.inner, x, y))
-TensorKit.add!!(x::AbstractArray{<:AbstractTensorMap}, y::AbstractArray{<:AbstractTensorMap}, a::Number, b::Number) = map((x, y) -> TensorKit.add!!(x, y, a, b), x, y)
-TensorKit.scale!!(x::AbstractArray{<:AbstractTensorMap}, a::Number) = map(x -> TensorKit.scale!!(x, a), x)
-
 """
     λs[1], Fs[1] = selectpos(λs, Fs)
 
@@ -131,7 +126,7 @@ Select the max positive one of λs and corresponding Fs.
 """
 function selectpos(λs, Fs, N)
     if length(λs) > 1 && norm(abs(λs[1]) - abs(λs[2])) < 1e-12
-        # @show "selectpos: λs are degeneracy"
+        # @warn "selectpos: λs are degeneracy"
         N = min(N, length(λs))
         p = argmax(real(λs[1:N]))  
         # @show λs p abs.(λs)
@@ -293,11 +288,15 @@ function leftenv(ALu::Matrix{<:AbstractTensorMap},
     FL′ = Zygote.Buffer(FL)
     for i in 1:Ni
         ir = ifobs ? Ni + 1 - i : mod1(i + 1, Ni)
-        λLs, FL1s, info = eigsolve(FLi -> FLmap(FLi, ALu[i,:], ALd[ir,:], ipeps.A[i,:], adjoint.(ipeps.A[i,:])), 
-                                   FL[i,:], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
+        λLs, FLi1s, info = eigsolve(FLij -> FLmap(1, FLij, ALu[i,:], ALd[ir,:], ipeps.A[i,:], adjoint.(ipeps.A[i,:])), 
+                                   FL[i,1], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
         verbosity >= 1 && info.converged == 0 && @warn "leftenv not converged"
-        λL[i], FL′[i,:] = selectpos(λLs, FL1s, Nj)
+        λL[i], FL′[i,1] = selectpos(λLs, FLi1s, Nj)
+        for j in 2:Nj
+            FL′[i,j] = FLmap(FL′[i,j-1], ALu[i,j-1], ALd[ir,j-1], ipeps.A[i,j-1], adjoint(ipeps.A[i,j-1]))
+        end
     end
+
     return copy(λL), copy(FL′)
 end
 
@@ -350,18 +349,20 @@ function rightenv(ARu::Matrix{<:AbstractTensorMap},
          ARd::Matrix{<:AbstractTensorMap}, 
          ipeps::InfinitePEPS, 
          FR::Matrix{<:AbstractTensorMap} = initial_FR(ARu,ipeps); 
-         ifobs=false, ifinline=false,verbosity = Defaults.verbosity, kwargs...) 
+         ifobs=false, verbosity = Defaults.verbosity, kwargs...) 
 
     Ni, Nj = size(ipeps)
     λR = Zygote.Buffer(zeros(eltype(ipeps[1]), Ni))
     FR′ = Zygote.Buffer(FR)
     for i in 1:Ni
         ir = ifobs ? Ni + 1 - i : mod1(i + 1, Ni)
-        ifinline && (ir = i) 
-        λRs, FR1s, info = eigsolve(FR -> FRmap(FR, ARu[i,:], ARd[ir,:], ipeps.A[i,:], adjoint.(ipeps.A[i,:])), 
-                                   FR[i,:], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
+        λRs, FR1s, info = eigsolve(FRiNj -> FRmap(Nj, FRiNj, ARu[i,:], ARd[ir,:], ipeps.A[i,:], adjoint.(ipeps.A[i,:])), 
+                                   FR[i,Nj], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
         verbosity >= 1 && info.converged == 0 && @warn "rightenv not converged"
-        λR[i], FR′[i,:] = selectpos(λRs, FR1s, Nj)
+        λR[i], FR′[i,Nj] = selectpos(λRs, FR1s, Nj)
+        for j in Nj-1:-1:1
+            FR′[i,j] = FRmap(FR′[i,j+1], ARu[i,j+1], ARd[ir,j+1], ipeps.A[i,j+1], adjoint(ipeps.A[i,j+1]))
+        end
     end
     return copy(λR), copy(FR′)
 end
@@ -390,10 +391,13 @@ function rightCenv(ARu::Matrix{<:AbstractTensorMap},
     R′ = Zygote.Buffer(R)
     for i in 1:Ni
         ir = ifobs ? mod1(Ni - i + 2, Ni) : i
-        λRs, R1s, info = eigsolve(R -> Rmap(R, ARu[i,:], ARd[ir,:]), 
-                                   R[i,:], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
+        λRs, R1s, info = eigsolve(RiNj -> Rmap(Nj, RiNj, ARu[i,:], ARd[ir,:]), 
+                                   R[i,Nj], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
         verbosity >= 1 && info.converged == 0 && @warn "rightenv not converged"
-        λR[i], R′[i,:] = selectpos(λRs, R1s, Nj)
+        λR[i], R′[i,Nj] = selectpos(λRs, R1s, Nj)
+        for j in Nj-1:-1:1
+            R′[i,j] = Rmap(R′[i,j+1], ARu[i,j+1], ARd[ir,j+1])
+        end
     end
     return copy(λR), copy(R′)
 end
@@ -420,10 +424,13 @@ function ACenv(AC::Matrix{<:AbstractTensorMap},
     λAC = Zygote.Buffer(zeros(eltype(ipeps[1]),Nj))
     AC′ = Zygote.Buffer(AC)
     for j in 1:Nj
-        λACs, ACs, info = eigsolve(AC -> ACmap(AC, FL[:,j], FR[:,j], ipeps.A[:,j], adjoint.(ipeps.A[:,j])), 
-                                   AC[:,j], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
+        λACs, ACs, info = eigsolve(AC1j -> ACmap(1, AC1j, FL[:,j], FR[:,j], ipeps.A[:,j], adjoint.(ipeps.A[:,j])), 
+                                   AC[1,j], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
         verbosity >= 1 && info.converged == 0 && @warn "ACenv Not converged"
-        λAC[j], AC′[:,j] = selectpos(λACs, ACs, Ni)
+        λAC[j], AC′[1,j] = selectpos(λACs, ACs, Ni)
+        for i in 2:Ni
+            AC′[i,j] = ACmap(AC′[i-1,j], FL[i-1,j], FR[i-1,j], ipeps.A[i-1,j], adjoint(ipeps.A[i-1,j]))
+        end
     end
     return copy(λAC), copy(AC′)
 end
@@ -453,10 +460,13 @@ function Cenv(C::Matrix{<:AbstractTensorMap},
     C′ = Zygote.Buffer(C)
     for j in 1:Nj
         jr = mod1(j + 1, Nj)
-        λCs, Cs, info = eigsolve(C -> Cmap(C, FL[:,jr], FR[:,j]), 
-                                 C[:,j], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
+        λCs, Cs, info = eigsolve(C1j -> Cmap(1, C1j, FL[:,jr], FR[:,j]), 
+                                 C[1,j], 1, :LM; maxiter=100, ishermitian = false, kwargs...)
         verbosity >= 1 && info.converged == 0 && @warn "Cenv Not converged"
-        λC[j], C′[:,j] = selectpos(λCs, Cs, Ni)
+        λC[j], C′[1,j] = selectpos(λCs, Cs, Ni)
+        for i in 2:Ni
+            C′[i,j] = Cmap(C′[i-1,j], FL[i-1,jr], FR[i-1,j])
+        end
     end
     return copy(λC), copy(C′)
 end

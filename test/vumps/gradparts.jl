@@ -165,16 +165,15 @@ end
     @test Zygote.gradient(f, 1.0)[1] ≈ num_grad(f, 1.0)
 end
 
-@testset "ad vumps iPEPS two side for unitcell $Ni x $Nj" for Ni in 2:2, Nj in 1:1, (d, D, χ) in zip(ds, Ds, [10])
+@testset "ad vumps iPEPS two side for unitcell $Ni x $Nj" for Ni in 1:3, Nj in 1:3, (d, D, χ) in zip(ds, Ds, [10])
     Random.seed!(42)
     ipeps = InfinitePEPS(d, D; unitcell=(Ni, Nj))
     
-    alg = VUMPS(maxiter=100, verbosity=3, ifupdown=true)
+    alg = VUMPS(maxiter=100, verbosity=2, ifupdown=true)
     rt = leading_boundary(VUMPSRuntime(ipeps, χ, alg), ipeps, alg)
     
-
     function foo1(ipeps)
-        alg = VUMPS(maxiter=2, verbosity=3, ifupdown=true)
+        alg = VUMPS(maxiter=10, verbosity=2, ifupdown=true)
         rt = leading_boundary(rt, ipeps, alg)
         env = VUMPSEnv(rt, ipeps)
         Z = abs(norm(ipeps, env))
@@ -188,7 +187,6 @@ end
         return Z
     end
 
-    # @test norm(foo1(ipeps) - foo2(ipeps)) < 1e-6 
-    @show norm(Zygote.gradient(foo1, ipeps)[1].A - Zygote.gradient(foo2, ipeps)[1].A)
-    # @test norm(Zygote.gradient(foo1, ipeps)[1].A - Zygote.gradient(foo2, ipeps)[1].A) < 1e-5 
+    @test foo1(ipeps) ≈ foo2(ipeps) rtol = 1e-6
+    @test norm(Zygote.gradient(foo1, ipeps)[1].A - Zygote.gradient(foo2, ipeps)[1].A) < 1e-4 
 end

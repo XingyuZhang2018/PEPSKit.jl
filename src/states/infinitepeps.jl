@@ -32,7 +32,7 @@ end
 
 """
     InfinitePEPS(
-        f=randn, T=ComplexF64, Pspaces::A, Nspaces::A, [Espaces::A]
+        f=rand, T=ComplexF64, Pspaces::A, Nspaces::A, [Espaces::A]
     ) where {A<:AbstractMatrix{<:Union{Int,ElementarySpace}}}
 
 Create an `InfinitePEPS` by specifying the physical, north virtual and east virtual spaces
@@ -42,7 +42,7 @@ specified as either an `Int` or an `ElementarySpace`.
 function InfinitePEPS(
     Pspaces::A, Nspaces::A, Espaces::A
 ) where {A<:AbstractMatrix{<:Union{Int,ElementarySpace}}}
-    return InfinitePEPS(randn, ComplexF64, Pspaces, Nspaces, Espaces)
+    return InfinitePEPS(rand, ComplexF64, Pspaces, Nspaces, Espaces)
 end
 function InfinitePEPS(
     f, T, Pspaces::M, Nspaces::M, Espaces::M=Nspaces
@@ -85,7 +85,7 @@ function InfinitePEPS(A::T; unitcell::Tuple{Int,Int}=(1, 1)) where {T<:PEPSTenso
 end
 
 """
-    InfinitePEPS(f=randn, T=ComplexF64, Pspace, Nspace, [Espace]; unitcell=(1,1))
+    InfinitePEPS(f=rand, T=ComplexF64, Pspace, Nspace, [Espace]; unitcell=(1,1))
 
 Create an InfinitePEPS by specifying its physical, north and east spaces and unit cell.
 Spaces can be specified either via `Int` or via `ElementarySpace`.
@@ -94,7 +94,7 @@ function InfinitePEPS(
     Pspace::S, Nspace::S, Espace::S=Nspace; unitcell::Tuple{Int,Int}=(1, 1)
 ) where {S<:Union{ElementarySpace,Int}}
     return InfinitePEPS(
-        randn,
+        rand,
         ComplexF64,
         fill(Pspace, unitcell),
         fill(Nspace, unitcell),

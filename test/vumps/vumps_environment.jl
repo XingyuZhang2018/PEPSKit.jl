@@ -95,10 +95,13 @@ end
     @test all(i -> space(i) == (χ * D' * D ← χ), FL)
     @test all(i -> space(i) == (χ * D * D' ← χ), FR)
 
+    
     for i in 1:Ni
         ir = ifobs ? Ni + 1 - i : mod1(i + 1, Ni)
-        @test λL[i] * FL[i,:] ≈ FLmap(FL[i,:], AL[i,:], adjoint.(AL)[ir,:], ipeps[i,:], adjoint.(ipeps[i,:])) rtol = 1e-12
-        @test λR[i] * FR[i,:] ≈ FRmap(FR[i,:], AR[i,:], adjoint.(AR)[ir,:], ipeps[i,:], adjoint.(ipeps[i,:])) rtol = 1e-12
+        for j in 1:Nj
+            @test λL[i] * FL[i,j] ≈ FLmap(j, FL[i,j], AL[i,:], adjoint.(AL)[ir,:], ipeps[i,:], adjoint.(ipeps[i,:])) rtol = 1e-12
+            @test λR[i] * FR[i,j] ≈ FRmap(j, FR[i,j], AR[i,:], adjoint.(AR)[ir,:], ipeps[i,:], adjoint.(ipeps[i,:])) rtol = 1e-12
+        end
     end
 end
 
@@ -123,8 +126,11 @@ end
 
     for j in 1:Nj
         jr = mod1(j + 1, Nj)
-        @test λAC[j] * AC[:,j] ≈ ACmap(AC[:,j], FL[:,j], FR[:,j], ipeps[:,j], adjoint.(ipeps[:,j])) rtol = 1e-12
-        @test  λC[j] *  C[:,j] ≈  Cmap( C[:,j], FL[:,jr], FR[:,j]) rtol = 1e-10
+        for i in 1:Ni
+            ir = mod1(i + 1, Ni)
+            @test λAC[j] * AC[i,j] ≈ ACmap(i, AC[i,j], FL[:,j], FR[:,j], ipeps[:,j], adjoint.(ipeps[:,j])) rtol = 1e-12
+            @test  λC[j] *  C[i,j] ≈  Cmap(i,  C[i,j], FL[:,jr], FR[:,j]) rtol = 1e-10
+        end
     end
 end
 
@@ -170,6 +176,8 @@ end
     for i in 1:Ni
         ir = ifobs ? mod1(Ni + 2 - i, Ni) : i
         @test λL[i] * L[i,:] ≈ Lmap(L[i,:], AL[i,:], adjoint.(AL)[ir,:]) rtol = 1e-12
-        @test λR[i] * R[i,:] ≈ Rmap(R[i,:], AR[i,:], adjoint.(AR)[ir,:]) rtol = 1e-12
+        for j in 1:Nj
+            @test λR[i] * R[i,j] ≈ Rmap(j, R[i,j], AR[i,:], adjoint.(AR)[ir,:]) rtol = 1e-12
+        end
     end
 end

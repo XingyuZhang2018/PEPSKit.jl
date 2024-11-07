@@ -71,7 +71,7 @@ function LinearAlgebra.norm(ipeps::InfinitePEPS, env::VUMPSEnv)
     λFLo, _ = rightenv(ARu, adjoint.(ARd), ipeps; ifobs=true)
     λC, _ = rightCenv(ARu, adjoint.(ARd); ifobs=true)
 
-    return prod(λFLo./λC)^(1/Ni)
+    return prod(λFLo./λC)^(1/Ni/Nj)
 
     # test for 1x1 unitcell
     # _, FLo =  leftenv(ARu, adjoint.(ARd), itp; ifobs=true)

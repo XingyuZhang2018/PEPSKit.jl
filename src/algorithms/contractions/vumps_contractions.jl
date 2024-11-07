@@ -56,15 +56,30 @@ FLᵢⱼ₊₁ =   FLᵢⱼ ─ Oᵢⱼ  ──
   └──       └──  ALdᵢᵣⱼ ─ 
 ```
 """
-function FLmap(FLi::Vector{<:AbstractTensorMap}, 
+function FLmap(FLij::AbstractTensorMap, 
+               ALuij::AbstractTensorMap,
+               ALdirj::AbstractTensorMap, 
+               Atij::AbstractTensorMap, 
+               Abij::AbstractTensorMap)
+
+    @tensoropt FLij[-1 -2 -3; -4] := FLij[6 5 4; 1] * ALuij[1 2 3; -4] * Atij[9; 2 -2 8 5] * 
+                                     Abij[3 -3 7 4; 9] * ALdirj[-1; 6 8 7]
+
+    return FLij
+end
+
+function FLmap(J::Int, FLij::AbstractTensorMap,
                ALui::Vector{<:AbstractTensorMap},
                ALdir::Vector{<:AbstractTensorMap}, 
                Ati::Vector{<:AbstractTensorMap}, 
                Abi::Vector{<:AbstractTensorMap})
-    FLm = [@tensoropt FL[-1 -2 -3; -4] := FL[6 5 4; 1] * ALu[1 2 3; -4] * At[9; 2 -2 8 5] * 
-    Ab[3 -3 7 4; 9] * ALd[-1; 6 8 7] for (FL, ALu, ALd, At, Ab) in zip(FLi, ALui, ALdir, Ati, Abi)]
+    Nj = length(ALui)
+    for j in J:(J + Nj - 1)
+        jr = mod1(j, Nj)
+        FLij = FLmap(FLij, ALui[jr], ALdir[jr], Ati[jr], Abi[jr])
+    end
 
-    return circshift(FLm, 1)
+    return FLij
 end
 
 """
@@ -97,15 +112,29 @@ end
     ── ARdᵢᵣⱼ ──┘          ──┘     
 ```
 """
-function FRmap(FRi::Vector{<:AbstractTensorMap}, 
+function FRmap(FRij::AbstractTensorMap, 
+               ARuij::AbstractTensorMap, 
+               ARdirj::AbstractTensorMap, 
+               Atij::AbstractTensorMap, 
+               Abij::AbstractTensorMap)
+    @tensoropt FRij[-1 -2 -3; -4] := ARuij[-1 1 2; 3] * FRij[3 4 5; 8] * Atij[9; 1 4 7 -2] * 
+                                     Abij[2 5 6 -3; 9] * ARdirj[8; -4 7 6]
+
+end
+
+function FRmap(J::Int, FRij::AbstractTensorMap, 
                ARui::Vector{<:AbstractTensorMap}, 
                ARdir::Vector{<:AbstractTensorMap}, 
                Ati::Vector{<:AbstractTensorMap}, 
                Abi::Vector{<:AbstractTensorMap})
-    FRm = [@tensoropt FR[-1 -2 -3; -4] := ARu[-1 1 2; 3] * FR[3 4 5; 8] * At[9; 1 4 7 -2] * 
-    Ab[2 5 6 -3; 9] * ARd[8; -4 7 6] for (FR, ARu, ARd, At, Ab) in zip(FRi, ARui, ARdir, Ati, Abi)]
 
-    return circshift(FRm, -1)
+    Nj = length(ARui)
+    for j in J:-1:(J - Nj + 1)
+        jr = mod1(j, Nj)
+        FRij = FRmap(FRij, ARui[jr], ARdir[jr], Ati[jr], Abi[jr])
+    end
+
+    return FRij
 end
 
 """
@@ -120,13 +149,26 @@ end
     ── ARdᵢᵣⱼ ──┘          ──┘     
 ```
 """
-function Rmap(Ri::Vector{<:AbstractTensorMap}, 
+function Rmap(Rij::AbstractTensorMap, 
+              ARuij::AbstractTensorMap, 
+              ARdirj::AbstractTensorMap)
+    @tensoropt Rij[-1; -5] := ARuij[-1 2 3; 4] * Rij[4; 6] * ARdirj[6; -5 2 3] 
+
+    return Rij
+end
+
+function Rmap(J, Rij::AbstractTensorMap, 
               ARui::Vector{<:AbstractTensorMap}, 
               ARdir::Vector{<:AbstractTensorMap})
-    Rm = [@tensoropt R[-1; -5] := ARu[-1 2 3; 4] * R[4; 6] * ARd[6; -5 2 3] for (R, ARu, ARd) in zip(Ri, ARui, ARdir)]
+    Nj = length(ARui)
+    for j in J:-1:(J - Nj + 1)
+        jr = mod1(j, Nj)
+        Rij = Rmap(Rij, ARui[jr], ARdir[jr])
+    end
 
-    return circshift(Rm, -1)
+    return Rij
 end
+
 
 """
     ACm = ACmap(ACj::Vector{<:AbstractTensorMap}, 
@@ -143,17 +185,30 @@ end
                                                                 
 ```
 """
-function ACmap(ACj::Vector{<:AbstractTensorMap}, 
+function ACmap(ACij::AbstractTensorMap, 
+               FLij::AbstractTensorMap, 
+               FRij::AbstractTensorMap,
+               Atij::AbstractTensorMap,
+               Abij::AbstractTensorMap)
+    @tensoropt ACij[-1 -2 -3; -4] := ACij[1 2 3; 4] * FLij[-1 6 5; 1]* Atij[9; 2 7 -2 6] * 
+                                     Abij[3 8 -3 5; 9] * FRij[4 7 8; -4] 
+    
+    return ACij
+end
+
+function ACmap(I::Int, ACij::AbstractTensorMap, 
                FLj::Vector{<:AbstractTensorMap}, 
                FRj::Vector{<:AbstractTensorMap},
                Atj::Vector{<:AbstractTensorMap},
                Abj::Vector{<:AbstractTensorMap})
-    ACm = [@tensoropt AC[-1 -2 -3; -4] := AC[1 2 3; 4] * FL[-1 6 5; 1]* At[9; 2 7 -2 6] * 
-    Ab[3 8 -3 5; 9] * FR[4 7 8; -4] for (AC, FL, FR, At, Ab) in zip(ACj, FLj, FRj, Atj, Abj)]
-    
-    return circshift(ACm, 1)
-end
+    Ni = length(FLj)
+    for i in I:(I + Ni - 1)
+        ir = mod1(i, Ni)
+        ACij = ACmap(ACij, FLj[ir], FRj[ir], Atj[ir], Abj[ir])
+    end
 
+    return ACij
+end
 """
     Cmap(Cij, FLjp, FRj, II)
 
@@ -165,12 +220,24 @@ end
                                                                        
 ```
 """
-function Cmap(Cj::Vector{<:AbstractTensorMap},
+function Cmap(Cij::AbstractTensorMap,
+              FLijr::AbstractTensorMap, 
+              FRij::AbstractTensorMap)
+    @tensoropt Cij[-1; -2] := Cij[1; 2] * FLijr[-1 3 4; 1] * FRij[2 3 4; -2]
+
+    return Cij
+end
+
+function Cmap(I, Cij::AbstractTensorMap,
               FLjr::Vector{<:AbstractTensorMap}, 
               FRj::Vector{<:AbstractTensorMap})
-    Cm = [@tensoropt C[-1; -2] := C[1; 2] * FL[-1 3 4; 1] * FR[2 3 4; -2] for (C, FL, FR) in zip(Cj, FLjr, FRj)]
+    Ni = length(FLjr)
+    for i in I:(I + Ni - 1)
+        ir = mod1(i, Ni)
+        Cij = Cmap(Cij, FLjr[ir], FRj[ir])
+    end
 
-    return circshift(Cm, 1)
+    return Cij
 end
 
 """
@@ -211,7 +278,7 @@ function nearest_neighbour_energy(ipeps::InfinitePEPS, Hh, Hv, env::VUMPSEnv)
         @tensor eh = oph[1 2; 3 4] * Hh[3 4; 1 2]
         @tensor nh = oph[1 2; 1 2]
         energy_tol += eh / nh
-        @show eh / nh eh nh
+        # @show eh / nh eh nh
         
         # vertical contraction
         ir = mod1(i + 1, Ni)
@@ -224,7 +291,7 @@ function nearest_neighbour_energy(ipeps::InfinitePEPS, Hh, Hv, env::VUMPSEnv)
         @tensor ev = opv[1 2; 3 4] * Hv[3 4; 1 2]
         @tensor nv = opv[1 2; 1 2]
         energy_tol += ev / nv 
-        @show ev / nv ev nv
+        # @show ev / nv ev nv
 
         # penalty term 
         # energy_tol += 0.1 * abs(eh / nh - eh / nh)
